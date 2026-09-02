@@ -1,0 +1,19 @@
+{
+  "name": "j-hunt",
+  "version": "0.1.0",
+  "description": "Local-first job hunting management CLI",
+  "type": "module",
+  "bin": {
+    "j-hunt": "./src/cli.ts"
+  },
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/cli.ts --compile --outfile ./dist/j-hunt"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}
