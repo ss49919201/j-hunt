@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { calculateCurrentStatus } from "../src/domain/status";
-import { CareerRepository, ConflictError } from "../src/infrastructure/career-repository";
+import {
+  CareerRepository,
+  ConflictError,
+} from "../src/infrastructure/career-repository";
 
 const PDF = new TextEncoder().encode("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF");
 
@@ -16,7 +19,10 @@ describe("CareerRepository", () => {
   });
 
   test("企業に現在状態を保存せずイベントから導出する", () => {
-    const company = repository.addCompany("Example株式会社", "https://example.com/");
+    const company = repository.addCompany(
+      "Example株式会社",
+      "https://example.com/",
+    );
     repository.addEvent({
       type: "selection_scheduled",
       companyId: company.id,
@@ -25,7 +31,9 @@ describe("CareerRepository", () => {
     });
 
     expect(company).not.toHaveProperty("status");
-    expect(calculateCurrentStatus(repository.listEvents(company.id)).label).toBe("2次選考待ち");
+    expect(
+      calculateCurrentStatus(repository.listEvents(company.id)).label,
+    ).toBe("2次選考待ち");
   });
 
   test("PDFのバイナリをSQLiteへ保存して復元できる", () => {
@@ -40,7 +48,11 @@ describe("CareerRepository", () => {
   test("職務経歴書提出とイベントを同じ操作で記録する", () => {
     const company = repository.addCompany("Example株式会社", null);
     const resume = repository.addResume("職務経歴書 v2", PDF);
-    const submission = repository.submitResume(resume.id, company.id, "2026-09-02T12:00:00.000Z");
+    const submission = repository.submitResume(
+      resume.id,
+      company.id,
+      "2026-09-02T12:00:00.000Z",
+    );
 
     expect(repository.listResumeSubmissions(company.id)).toEqual([submission]);
     expect(repository.listEvents(company.id)).toEqual([
@@ -57,7 +69,9 @@ describe("CareerRepository", () => {
     const resume = repository.addResume("職務経歴書 v3", PDF);
     repository.submitResume(resume.id, company.id, "2026-09-02T12:00:00.000Z");
 
-    expect(() => repository.deleteResume(resume.id, false)).toThrow(ConflictError);
+    expect(() => repository.deleteResume(resume.id, false)).toThrow(
+      ConflictError,
+    );
     repository.deleteResume(resume.id, true);
 
     expect(repository.listResumes()).toHaveLength(0);

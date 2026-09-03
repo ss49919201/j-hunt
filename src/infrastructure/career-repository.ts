@@ -128,10 +128,9 @@ export class CareerRepository {
     };
     try {
       this.database
-        .query<
-          void,
-          [string, string, string | null, string, string]
-        >("INSERT INTO companies (id, name, website, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .query<void, [string, string, string | null, string, string]>(
+          "INSERT INTO companies (id, name, website, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        )
         .run(
           company.id,
           company.name,
@@ -150,10 +149,9 @@ export class CareerRepository {
 
   listCompanies(): Company[] {
     return this.database
-      .query<
-        CompanyRow,
-        []
-      >("SELECT * FROM companies ORDER BY name COLLATE NOCASE")
+      .query<CompanyRow, []>(
+        "SELECT * FROM companies ORDER BY name COLLATE NOCASE",
+      )
       .all()
       .map(mapCompany);
   }
@@ -186,10 +184,9 @@ export class CareerRepository {
     };
     try {
       this.database
-        .query<
-          void,
-          [string, string | null, string, string]
-        >("UPDATE companies SET name = ?, website = ?, updated_at = ? WHERE id = ?")
+        .query<void, [string, string | null, string, string]>(
+          "UPDATE companies SET name = ?, website = ?, updated_at = ? WHERE id = ?",
+        )
         .run(updated.name, updated.website, updated.updatedAt, current.id);
     } catch (error) {
       throw translateConstraintError(
@@ -228,10 +225,9 @@ export class CareerRepository {
   listEvents(companyId: string): CareerEvent[] {
     const company = this.findCompany(companyId);
     return this.database
-      .query<
-        EventRow,
-        [string]
-      >("SELECT * FROM events WHERE company_id = ? ORDER BY occurred_at, created_at, id")
+      .query<EventRow, [string]>(
+        "SELECT * FROM events WHERE company_id = ? ORDER BY occurred_at, created_at, id",
+      )
       .all(company.id)
       .map(mapEvent);
   }
@@ -248,10 +244,9 @@ export class CareerRepository {
       updatedAt: now,
     };
     this.database
-      .query<
-        void,
-        [string, string, string, string, string, string]
-      >("INSERT INTO notes (id, company_id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
+      .query<void, [string, string, string, string, string, string]>(
+        "INSERT INTO notes (id, company_id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
       .run(
         note.id,
         note.companyId,
@@ -266,10 +261,9 @@ export class CareerRepository {
   listNotes(companyId: string): Note[] {
     const company = this.findCompany(companyId);
     return this.database
-      .query<
-        NoteRow,
-        [string]
-      >("SELECT * FROM notes WHERE company_id = ? ORDER BY created_at, id")
+      .query<NoteRow, [string]>(
+        "SELECT * FROM notes WHERE company_id = ? ORDER BY created_at, id",
+      )
       .all(company.id)
       .map(mapNote);
   }
@@ -295,10 +289,9 @@ export class CareerRepository {
       updatedAt: new Date().toISOString(),
     };
     this.database
-      .query<
-        void,
-        [string, string, string, string]
-      >("UPDATE notes SET title = ?, body = ?, updated_at = ? WHERE id = ?")
+      .query<void, [string, string, string, string]>(
+        "UPDATE notes SET title = ?, body = ?, updated_at = ? WHERE id = ?",
+      )
       .run(updated.title, updated.body, updated.updatedAt, current.id);
     return updated;
   }
@@ -323,10 +316,9 @@ export class CareerRepository {
     };
     try {
       this.database
-        .query<
-          void,
-          [string, string, Uint8Array, string, string]
-        >("INSERT INTO resumes (id, name, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .query<void, [string, string, Uint8Array, string, string]>(
+          "INSERT INTO resumes (id, name, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        )
         .run(
           resume.id,
           resume.name,
@@ -345,10 +337,9 @@ export class CareerRepository {
 
   listResumes(): Resume[] {
     return this.database
-      .query<
-        ResumeRow,
-        []
-      >("SELECT id, name, length(content) AS size, created_at, updated_at FROM resumes ORDER BY created_at DESC")
+      .query<ResumeRow, []>(
+        "SELECT id, name, length(content) AS size, created_at, updated_at FROM resumes ORDER BY created_at DESC",
+      )
       .all()
       .map(mapResume);
   }
@@ -367,10 +358,9 @@ export class CareerRepository {
   getResumeContent(reference: string): ResumeWithContent {
     const resume = this.findResume(reference);
     const row = this.database
-      .query<
-        ResumeRow,
-        [string]
-      >("SELECT id, name, content, length(content) AS size, created_at, updated_at FROM resumes WHERE id = ?")
+      .query<ResumeRow, [string]>(
+        "SELECT id, name, content, length(content) AS size, created_at, updated_at FROM resumes WHERE id = ?",
+      )
       .get(resume.id);
     if (!row) throw new NotFoundError("職務経歴書が見つかりません。");
     return { ...mapResume(row), content: row.content };
@@ -394,10 +384,9 @@ export class CareerRepository {
 
     this.database.transaction(() => {
       this.database
-        .query<
-          void,
-          [string, string, string, string, string]
-        >("INSERT INTO resume_submissions (id, company_id, resume_id, submitted_at, created_at) VALUES (?, ?, ?, ?, ?)")
+        .query<void, [string, string, string, string, string]>(
+          "INSERT INTO resume_submissions (id, company_id, resume_id, submitted_at, created_at) VALUES (?, ?, ?, ?, ?)",
+        )
         .run(
           submission.id,
           submission.companyId,
@@ -413,10 +402,9 @@ export class CareerRepository {
   listResumeSubmissions(companyReference: string): ResumeSubmission[] {
     const company = this.findCompany(companyReference);
     return this.database
-      .query<
-        ResumeSubmissionRow,
-        [string]
-      >("SELECT * FROM resume_submissions WHERE company_id = ? ORDER BY submitted_at, created_at, id")
+      .query<ResumeSubmissionRow, [string]>(
+        "SELECT * FROM resume_submissions WHERE company_id = ? ORDER BY submitted_at, created_at, id",
+      )
       .all(company.id)
       .map(mapResumeSubmission);
   }
@@ -425,10 +413,9 @@ export class CareerRepository {
     const resume = this.findResume(resumeReference);
     return (
       this.database
-        .query<
-          { count: number },
-          [string]
-        >("SELECT count(*) AS count FROM resume_submissions WHERE resume_id = ?")
+        .query<{ count: number }, [string]>(
+          "SELECT count(*) AS count FROM resume_submissions WHERE resume_id = ?",
+        )
         .get(resume.id)?.count ?? 0
     );
   }
@@ -444,16 +431,14 @@ export class CareerRepository {
     this.database.transaction(() => {
       if (force) {
         this.database
-          .query<
-            void,
-            [string]
-          >("DELETE FROM events WHERE type = 'resume_submitted' AND json_extract(payload, '$.resumeId') = ?")
+          .query<void, [string]>(
+            "DELETE FROM events WHERE type = 'resume_submitted' AND json_extract(payload, '$.resumeId') = ?",
+          )
           .run(resume.id);
         this.database
-          .query<
-            void,
-            [string]
-          >("DELETE FROM resume_submissions WHERE resume_id = ?")
+          .query<void, [string]>(
+            "DELETE FROM resume_submissions WHERE resume_id = ?",
+          )
           .run(resume.id);
       }
       this.database
@@ -485,7 +470,9 @@ export class CareerRepository {
       .query<
         void,
         [string, string, CareerEventType, string, number | null, string, string]
-      >("INSERT INTO events (id, company_id, type, occurred_at, round, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      >(
+        "INSERT INTO events (id, company_id, type, occurred_at, round, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
       .run(
         event.id,
         event.companyId,
@@ -500,10 +487,9 @@ export class CareerRepository {
 
   private insertResumeSubmittedEvent(submission: ResumeSubmission): void {
     this.database
-      .query<
-        void,
-        [string, string, string, string, null, string, string]
-      >("INSERT INTO events (id, company_id, type, occurred_at, round, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .query<void, [string, string, string, string, null, string, string]>(
+        "INSERT INTO events (id, company_id, type, occurred_at, round, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
       .run(
         crypto.randomUUID(),
         submission.companyId,
@@ -524,10 +510,9 @@ function resolveReference<Row extends { id: string; name: string }>(
   columns = "*",
 ): Row {
   const exactRow = database
-    .query<
-      Row,
-      [string, string]
-    >(`SELECT ${columns} FROM ${table} WHERE id = ? OR name = ? COLLATE NOCASE LIMIT 1`)
+    .query<Row, [string, string]>(
+      `SELECT ${columns} FROM ${table} WHERE id = ? OR name = ? COLLATE NOCASE LIMIT 1`,
+    )
     .get(reference, reference);
   if (exactRow) return exactRow;
   return resolveIdPrefix<Row>(database, table, reference, label, columns);
@@ -541,10 +526,9 @@ function resolveIdPrefix<Row extends { id: string }>(
   columns = "*",
 ): Row {
   const matches = database
-    .query<
-      Row,
-      [string]
-    >(`SELECT ${columns} FROM ${table} WHERE id LIKE ? ORDER BY id LIMIT 2`)
+    .query<Row, [string]>(
+      `SELECT ${columns} FROM ${table} WHERE id LIKE ? ORDER BY id LIMIT 2`,
+    )
     .all(`${reference}%`);
   if (matches.length === 0)
     throw new NotFoundError(`${label}「${reference}」が見つかりません。`);

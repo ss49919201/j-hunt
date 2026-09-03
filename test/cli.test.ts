@@ -7,7 +7,8 @@ import { runCli } from "../src/cli";
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
-  for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
+  for (const directory of temporaryDirectories.splice(0))
+    rmSync(directory, { recursive: true, force: true });
 });
 
 describe("CLI", () => {
@@ -16,15 +17,32 @@ describe("CLI", () => {
     temporaryDirectories.push(directory);
     const dbPath = join(directory, "career.db");
 
-    expect(await invoke(["--db", dbPath, "company", "add", "Example株式会社"])).toMatchObject({ code: 0 });
     expect(
-      await invoke(["--db", dbPath, "event", "add", "Example株式会社", "selection-scheduled", "--round", "1"]),
+      await invoke(["--db", dbPath, "company", "add", "Example株式会社"]),
+    ).toMatchObject({ code: 0 });
+    expect(
+      await invoke([
+        "--db",
+        dbPath,
+        "event",
+        "add",
+        "Example株式会社",
+        "selection-scheduled",
+        "--round",
+        "1",
+      ]),
     ).toMatchObject({ code: 0 });
     const result = await invoke(["--db", dbPath, "--json", "company", "list"]);
-    const companies = JSON.parse(result.stdout) as Array<{ name: string; status: { code: string } }>;
+    const companies = JSON.parse(result.stdout) as Array<{
+      name: string;
+      status: { code: string };
+    }>;
 
     expect(companies).toHaveLength(1);
-    expect(companies[0]).toMatchObject({ name: "Example株式会社", status: { code: "selection_waiting" } });
+    expect(companies[0]).toMatchObject({
+      name: "Example株式会社",
+      status: { code: "selection_waiting" },
+    });
   });
 
   test("PDF以外のファイルを拒否する", async () => {
@@ -41,7 +59,9 @@ describe("CLI", () => {
   });
 });
 
-async function invoke(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function invoke(
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
   const stdout: string[] = [];
   const stderr: string[] = [];
   const code = await runCli(args, {

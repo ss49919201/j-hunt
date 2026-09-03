@@ -89,7 +89,10 @@ PDF本体もSQLiteのBLOBとして保存されます。このDBファイルを�
 ## 開発
 
 ```bash
+bun run format:check
 bun test
 bun run typecheck
 bun run build
 ```
+
+コードを整形するには `bun run format` を実行してください。

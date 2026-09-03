@@ -24,20 +24,24 @@ export function extractGlobalArguments(args: string[]): GlobalArguments {
     }
     if (token === "--db") {
       const next = args[index + 1];
-      if (!next || next.startsWith("--")) throw new ValidationError("--dbにはDBファイルのパスが必要です。");
+      if (!next || next.startsWith("--"))
+        throw new ValidationError("--dbにはDBファイルのパスが必要です。");
       dbPath = next;
       index += 1;
       continue;
     }
     if (token.startsWith("--db=")) {
       dbPath = token.slice("--db=".length);
-      if (!dbPath) throw new ValidationError("--dbにはDBファイルのパスが必要です。");
+      if (!dbPath)
+        throw new ValidationError("--dbにはDBファイルのパスが必要です。");
       continue;
     }
     remaining.push(token);
   }
 
-  return dbPath === undefined ? { args: remaining, json } : { args: remaining, dbPath, json };
+  return dbPath === undefined
+    ? { args: remaining, json }
+    : { args: remaining, dbPath, json };
 }
 
 export function parseArguments(args: string[]): ParsedArguments {
@@ -56,7 +60,8 @@ export function parseArguments(args: string[]): ParsedArguments {
     if (equalsIndex >= 0) {
       const key = token.slice(2, equalsIndex);
       const value = token.slice(equalsIndex + 1);
-      if (!key || !value) throw new ValidationError(`不正なオプションです: ${token}`);
+      if (!key || !value)
+        throw new ValidationError(`不正なオプションです: ${token}`);
       options.set(key, value);
       continue;
     }
@@ -79,7 +84,11 @@ export function parseArguments(args: string[]): ParsedArguments {
   return { positionals, options };
 }
 
-export function optionValue(parsed: ParsedArguments, name: string, required = false): string | undefined {
+export function optionValue(
+  parsed: ParsedArguments,
+  name: string,
+  required = false,
+): string | undefined {
   const value = parsed.options.get(name);
   if (value === undefined) {
     if (required) throw new ValidationError(`--${name}を指定してください。`);
@@ -96,20 +105,34 @@ export function optionFlag(parsed: ParsedArguments, name: string): boolean {
   return true;
 }
 
-export function assertAllowedOptions(parsed: ParsedArguments, allowed: readonly string[]): void {
+export function assertAllowedOptions(
+  parsed: ParsedArguments,
+  allowed: readonly string[],
+): void {
   for (const name of parsed.options.keys()) {
-    if (!allowed.includes(name)) throw new ValidationError(`未対応のオプションです: --${name}`);
+    if (!allowed.includes(name))
+      throw new ValidationError(`未対応のオプションです: --${name}`);
   }
 }
 
-export function requiredPositional(parsed: ParsedArguments, index: number, label: string): string {
+export function requiredPositional(
+  parsed: ParsedArguments,
+  index: number,
+  label: string,
+): string {
   const value = parsed.positionals[index];
-  if (value === undefined) throw new ValidationError(`${label}を指定してください。`);
+  if (value === undefined)
+    throw new ValidationError(`${label}を指定してください。`);
   return value;
 }
 
-export function assertPositionalCount(parsed: ParsedArguments, maximum: number): void {
+export function assertPositionalCount(
+  parsed: ParsedArguments,
+  maximum: number,
+): void {
   if (parsed.positionals.length > maximum) {
-    throw new ValidationError(`余分な引数があります: ${parsed.positionals.slice(maximum).join(" ")}`);
+    throw new ValidationError(
+      `余分な引数があります: ${parsed.positionals.slice(maximum).join(" ")}`,
+    );
   }
 }

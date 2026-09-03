@@ -1,4 +1,10 @@
-import type { CareerEvent, Company, Note, Resume, ResumeSubmission } from "../domain/models";
+import type {
+  CareerEvent,
+  Company,
+  Note,
+  Resume,
+  ResumeSubmission,
+} from "../domain/models";
 
 const EVENT_LABELS: Record<CareerEvent["type"], string> = {
   casual_interview_applied: "カジュアル面談応募",
@@ -28,10 +34,17 @@ export function formatCompany(company: Company, status: string): string {
 
 export function formatEvent(event: CareerEvent): string {
   const details: string[] = [];
-  if (event.type === "selection_scheduled" || event.type === "selection_completed") details.push(`${event.round}次`);
-  if (event.type === "resume_submitted") details.push(`resume=${shortId(event.resumeId)}`);
-  if (event.type === "offer_received" && event.position) details.push(event.position);
-  if (event.type === "offer_received" && event.annualSalary) details.push(`年収=${event.annualSalary.toLocaleString("ja-JP")}`);
+  if (
+    event.type === "selection_scheduled" ||
+    event.type === "selection_completed"
+  )
+    details.push(`${event.round}次`);
+  if (event.type === "resume_submitted")
+    details.push(`resume=${shortId(event.resumeId)}`);
+  if (event.type === "offer_received" && event.position)
+    details.push(event.position);
+  if (event.type === "offer_received" && event.annualSalary)
+    details.push(`年収=${event.annualSalary.toLocaleString("ja-JP")}`);
   if (event.type === "rejected" && event.reason) details.push(event.reason);
   return `${formatDate(event.occurredAt)}\t${EVENT_LABELS[event.type]}${details.length ? ` (${details.join(", ")})` : ""}\t${shortId(event.id)}`;
 }
@@ -44,13 +57,21 @@ export function formatResume(resume: Resume): string {
   return `${shortId(resume.id)}\t${resume.name}\t${formatBytes(resume.size)}\t${formatDate(resume.createdAt)}`;
 }
 
-export function formatSubmission(submission: ResumeSubmission, resumes: readonly Resume[]): string {
-  const resume = resumes.find((candidate) => candidate.id === submission.resumeId);
+export function formatSubmission(
+  submission: ResumeSubmission,
+  resumes: readonly Resume[],
+): string {
+  const resume = resumes.find(
+    (candidate) => candidate.id === submission.resumeId,
+  );
   return `${formatDate(submission.submittedAt)}\t${resume?.name ?? shortId(submission.resumeId)}\t${shortId(submission.id)}`;
 }
 
 export function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat("ja-JP", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 export function formatBytes(bytes: number): string {
