@@ -93,15 +93,5 @@ export interface ResumeSubmission {
 }
 
 export interface CurrentStatus {
-  code:
-    | "not_started"
-    | "casual_interview_applied"
-    | "casual_interview_waiting"
-    | "casual_interview_follow_up"
-    | "document_screening_waiting"
-    | "selection_waiting"
-    | "selection_result_waiting"
-    | "offer_received"
-    | "rejected";
   label: string;
 }

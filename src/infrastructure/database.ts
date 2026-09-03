@@ -8,23 +8,27 @@ export function openDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
 
   const database = new Database(path, { create: true, strict: true });
-  database.exec("PRAGMA foreign_keys = ON");
-  database.exec("PRAGMA busy_timeout = 5000");
-  if (path !== ":memory:") database.exec("PRAGMA journal_mode = WAL");
+  database.run("PRAGMA foreign_keys = ON");
+  database.run("PRAGMA busy_timeout = 5000");
+  if (path !== ":memory:") database.run("PRAGMA journal_mode = WAL");
 
   migrate(database);
   return database;
 }
 
 function migrate(database: Database): void {
-  const version = database.query<{ user_version: number }, []>("PRAGMA user_version").get()?.user_version ?? 0;
+  const version =
+    database.query<{ user_version: number }, []>("PRAGMA user_version").get()
+      ?.user_version ?? 0;
   if (version > SCHEMA_VERSION) {
-    throw new Error(`このDBは新しいバージョンで作成されています (DB: ${version}, CLI: ${SCHEMA_VERSION})。`);
+    throw new Error(
+      `このDBは新しいバージョンで作成されています (DB: ${version}, CLI: ${SCHEMA_VERSION})。`,
+    );
   }
   if (version === SCHEMA_VERSION) return;
 
   database.transaction(() => {
-    database.exec(`
+    database.run(`
       CREATE TABLE companies (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL COLLATE NOCASE UNIQUE,
