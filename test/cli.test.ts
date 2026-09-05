@@ -35,13 +35,13 @@ describe("CLI", () => {
     const result = await invoke(["--db", dbPath, "--json", "company", "list"]);
     const companies = JSON.parse(result.stdout) as Array<{
       name: string;
-      status: { code: string };
+      status: { label: string };
     }>;
 
     expect(companies).toHaveLength(1);
     expect(companies[0]).toMatchObject({
       name: "Example株式会社",
-      status: { code: "selection_waiting" },
+      status: { label: "1次選考待ち" },
     });
   });
 
