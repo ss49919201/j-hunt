@@ -1,43 +1,69 @@
+import { z } from "zod";
+
 export class ValidationError extends Error {
   override name = "ValidationError";
 }
 
+const requiredTextSchema = z.string().trim().min(1);
+const optionalTextSchema = z
+  .string()
+  .trim()
+  .transform((value) => value || undefined)
+  .optional();
+const positiveIntegerSchema = z.coerce.number().min(1).refine(Number.isInteger);
+const positiveNumberSchema = z.coerce.number().positive().finite();
+const isoDateTimeSchema = z.coerce
+  .date()
+  .transform((value) => value.toISOString());
+const optionalUrlSchema = z
+  .string()
+  .trim()
+  .transform((value) => value || null)
+  .pipe(z.union([z.null(), z.url({ protocol: /^https?$/, normalize: true })]))
+  .optional();
+
+function parseOrThrow<T>(
+  schema: z.ZodType<T>,
+  value: unknown,
+  message: string,
+): T {
+  const result = schema.safeParse(value);
+  if (!result.success) throw new ValidationError(message);
+  return result.data;
+}
+
 export function requiredText(value: string, fieldName: string): string {
-  const normalized = value.trim();
-  if (!normalized) throw new ValidationError(`${fieldName}は空にできません。`);
-  return normalized;
+  return parseOrThrow(
+    requiredTextSchema,
+    value,
+    `${fieldName}は空にできません。`,
+  );
 }
 
 export function optionalText(value: string | undefined): string | undefined {
-  if (value === undefined) return undefined;
-  const normalized = value.trim();
-  return normalized || undefined;
+  return optionalTextSchema.parse(value);
 }
 
 export function positiveInteger(
   value: string | number,
   fieldName: string,
 ): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    throw new ValidationError(
-      `${fieldName}には1以上の整数を指定してください。`,
-    );
-  }
-  return parsed;
+  return parseOrThrow(
+    positiveIntegerSchema,
+    value,
+    `${fieldName}には1以上の整数を指定してください。`,
+  );
 }
 
 export function positiveNumber(
   value: string | number,
   fieldName: string,
 ): number {
-  const parsed = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new ValidationError(
-      `${fieldName}には0より大きい数値を指定してください。`,
-    );
-  }
-  return parsed;
+  return parseOrThrow(
+    positiveNumberSchema,
+    value,
+    `${fieldName}には0より大きい数値を指定してください。`,
+  );
 }
 
 export function isoDateTime(
@@ -45,29 +71,19 @@ export function isoDateTime(
   fieldName = "日時",
 ): string {
   if (value === undefined) return new Date().toISOString();
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new ValidationError(
-      `${fieldName}は有効なISO 8601日時で指定してください。`,
-    );
-  }
-  return parsed.toISOString();
+  return parseOrThrow(
+    isoDateTimeSchema,
+    value,
+    `${fieldName}は有効なISO 8601日時で指定してください。`,
+  );
 }
 
 export function optionalUrl(
   value: string | undefined,
 ): string | null | undefined {
-  if (value === undefined) return undefined;
-  const normalized = value.trim();
-  if (!normalized) return null;
-  try {
-    const url = new URL(normalized);
-    if (url.protocol !== "http:" && url.protocol !== "https:")
-      throw new Error();
-    return url.toString();
-  } catch {
-    throw new ValidationError(
-      "websiteにはhttpまたはhttpsのURLを指定してください。",
-    );
-  }
+  return parseOrThrow(
+    optionalUrlSchema,
+    value,
+    "websiteにはhttpまたはhttpsのURLを指定してください。",
+  );
 }
