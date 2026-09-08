@@ -1,19 +1,27 @@
 import type { Database } from "bun:sqlite";
-import type {
-  CareerEvent,
-  CareerEventType,
-  Company,
-  Note,
-  Resume,
-  ResumeSubmission,
-  ResumeWithContent,
-} from "../domain/models";
 import {
-  positiveInteger,
-  positiveNumber,
-  requiredText,
-  ValidationError,
-} from "../domain/validation";
+  newCareerEvent,
+  newCompany,
+  newNote,
+  newResume,
+  newResumeSubmission,
+  reconstructCareerEvent,
+  reconstructCompany,
+  reconstructNote,
+  reconstructResume,
+  reconstructResumeSubmission,
+  reconstructResumeWithContent,
+  type NewCareerEventInput,
+  type CareerEvent,
+  type CareerEventType,
+  type Company,
+  type Note,
+  type Resume,
+  type ResumeSubmission,
+  type ResumeWithContent,
+} from "../domain/models";
+import { unwrap } from "../domain/result";
+import { ValidationError } from "../domain/validation";
 import { openDatabase } from "./database";
 
 export class NotFoundError extends Error {
@@ -68,43 +76,10 @@ interface ResumeSubmissionRow {
   created_at: string;
 }
 
-type NewCareerEvent =
-  | { type: "casual_interview_applied"; companyId: string; occurredAt: string }
-  | {
-      type: "casual_interview_scheduled";
-      companyId: string;
-      occurredAt: string;
-    }
-  | {
-      type: "casual_interview_completed";
-      companyId: string;
-      occurredAt: string;
-    }
-  | {
-      type: "selection_scheduled";
-      companyId: string;
-      occurredAt: string;
-      round: number;
-    }
-  | {
-      type: "selection_completed";
-      companyId: string;
-      occurredAt: string;
-      round: number;
-    }
-  | {
-      type: "offer_received";
-      companyId: string;
-      occurredAt: string;
-      position?: string;
-      annualSalary?: number;
-    }
-  | {
-      type: "rejected";
-      companyId: string;
-      occurredAt: string;
-      reason?: string;
-    };
+type AddCareerEventInput = Exclude<
+  NewCareerEventInput,
+  { type: "resume_submitted" }
+>;
 
 export class CareerRepository {
   private readonly database: Database;
@@ -118,14 +93,7 @@ export class CareerRepository {
   }
 
   addCompany(name: string, website: string | null): Company {
-    const now = new Date().toISOString();
-    const company: Company = {
-      id: crypto.randomUUID(),
-      name: requiredText(name, "企業名"),
-      website,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const company = unwrap(newCompany({ name, website }));
     try {
       this.database
         .query<void, [string, string, string | null, string, string]>(
@@ -172,16 +140,15 @@ export class CareerRepository {
     changes: { name?: string; website?: string | null },
   ): Company {
     const current = this.findCompany(id);
-    const updated: Company = {
-      ...current,
-      name:
-        changes.name === undefined
-          ? current.name
-          : requiredText(changes.name, "企業名"),
-      website:
-        changes.website === undefined ? current.website : changes.website,
-      updatedAt: new Date().toISOString(),
-    };
+    const updated = unwrap(
+      reconstructCompany({
+        ...current,
+        name: changes.name === undefined ? current.name : changes.name,
+        website:
+          changes.website === undefined ? current.website : changes.website,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
     try {
       this.database
         .query<void, [string, string | null, string, string]>(
@@ -217,7 +184,7 @@ export class CareerRepository {
     return row?.count ?? 0;
   }
 
-  addEvent(input: NewCareerEvent): CareerEvent {
+  addEvent(input: AddCareerEventInput): CareerEvent {
     const company = this.findCompany(input.companyId);
     return this.insertEvent({ ...input, companyId: company.id });
   }
@@ -234,15 +201,13 @@ export class CareerRepository {
 
   addNote(companyId: string, title: string, body: string): Note {
     const company = this.findCompany(companyId);
-    const now = new Date().toISOString();
-    const note: Note = {
-      id: crypto.randomUUID(),
-      companyId: company.id,
-      title: requiredText(title, "タイトル"),
-      body: requiredText(body, "本文"),
-      createdAt: now,
-      updatedAt: now,
-    };
+    const note = unwrap(
+      newNote({
+        companyId: company.id,
+        title,
+        body,
+      }),
+    );
     this.database
       .query<void, [string, string, string, string, string, string]>(
         "INSERT INTO notes (id, company_id, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -276,18 +241,14 @@ export class CareerRepository {
 
   updateNote(id: string, changes: { title?: string; body?: string }): Note {
     const current = this.findNote(id);
-    const updated: Note = {
-      ...current,
-      title:
-        changes.title === undefined
-          ? current.title
-          : requiredText(changes.title, "タイトル"),
-      body:
-        changes.body === undefined
-          ? current.body
-          : requiredText(changes.body, "本文"),
-      updatedAt: new Date().toISOString(),
-    };
+    const updated = unwrap(
+      reconstructNote({
+        ...current,
+        title: changes.title === undefined ? current.title : changes.title,
+        body: changes.body === undefined ? current.body : changes.body,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
     this.database
       .query<void, [string, string, string, string]>(
         "UPDATE notes SET title = ?, body = ?, updated_at = ? WHERE id = ?",
@@ -304,16 +265,7 @@ export class CareerRepository {
   }
 
   addResume(name: string, content: Uint8Array): Resume {
-    if (!looksLikePdf(content))
-      throw new ValidationError("PDF形式のファイルを指定してください。");
-    const now = new Date().toISOString();
-    const resume: Resume = {
-      id: crypto.randomUUID(),
-      name: requiredText(name, "職務経歴書名"),
-      size: content.byteLength,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const resume = unwrap(newResume({ name, content }));
     try {
       this.database
         .query<void, [string, string, Uint8Array, string, string]>(
@@ -363,7 +315,9 @@ export class CareerRepository {
       )
       .get(resume.id);
     if (!row) throw new NotFoundError("職務経歴書が見つかりません。");
-    return { ...mapResume(row), content: row.content };
+    return unwrap(
+      reconstructResumeWithContent({ ...mapResume(row), content: row.content }),
+    );
   }
 
   submitResume(
@@ -373,14 +327,13 @@ export class CareerRepository {
   ): ResumeSubmission {
     const resume = this.findResume(resumeReference);
     const company = this.findCompany(companyReference);
-    const now = new Date().toISOString();
-    const submission: ResumeSubmission = {
-      id: crypto.randomUUID(),
-      companyId: company.id,
-      resumeId: resume.id,
-      submittedAt,
-      createdAt: now,
-    };
+    const submission = unwrap(
+      newResumeSubmission({
+        companyId: company.id,
+        resumeId: resume.id,
+        submittedAt,
+      }),
+    );
 
     this.database.transaction(() => {
       this.database
@@ -447,24 +400,20 @@ export class CareerRepository {
     })();
   }
 
-  private insertEvent(input: NewCareerEvent): CareerEvent {
-    const now = new Date().toISOString();
-    const event = {
-      ...input,
-      id: crypto.randomUUID(),
-      createdAt: now,
-    } as CareerEvent;
-    const round =
-      "round" in event ? positiveInteger(event.round, "選考回数") : null;
+  private insertEvent(input: NewCareerEventInput): CareerEvent {
+    const event = unwrap(newCareerEvent(input));
+    const round = "round" in event ? event.round : null;
     const payload: Record<string, unknown> = {};
     if (event.type === "offer_received") {
-      if (event.position !== undefined)
-        payload.position = requiredText(event.position, "ポジション");
+      if (event.position !== undefined) payload.position = event.position;
       if (event.annualSalary !== undefined)
-        payload.annualSalary = positiveNumber(event.annualSalary, "年収");
+        payload.annualSalary = event.annualSalary;
     }
     if (event.type === "rejected" && event.reason !== undefined) {
-      payload.reason = requiredText(event.reason, "不採用理由");
+      payload.reason = event.reason;
+    }
+    if (event.type === "resume_submitted") {
+      payload.resumeId = event.resumeId;
     }
     this.database
       .query<
@@ -486,19 +435,12 @@ export class CareerRepository {
   }
 
   private insertResumeSubmittedEvent(submission: ResumeSubmission): void {
-    this.database
-      .query<void, [string, string, string, string, null, string, string]>(
-        "INSERT INTO events (id, company_id, type, occurred_at, round, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      )
-      .run(
-        crypto.randomUUID(),
-        submission.companyId,
-        "resume_submitted",
-        submission.submittedAt,
-        null,
-        JSON.stringify({ resumeId: submission.resumeId }),
-        submission.createdAt,
-      );
+    this.insertEvent({
+      type: "resume_submitted",
+      companyId: submission.companyId,
+      occurredAt: submission.submittedAt,
+      resumeId: submission.resumeId,
+    });
   }
 }
 
@@ -540,21 +482,25 @@ function resolveIdPrefix<Row extends { id: string }>(
 }
 
 function mapCompany(row: CompanyRow): Company {
-  return {
-    id: row.id,
-    name: row.name,
-    website: row.website,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+  return unwrap(
+    reconstructCompany({
+      id: row.id,
+      name: row.name,
+      website: row.website,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }),
+  );
 }
 
 function mapEvent(row: EventRow): CareerEvent {
   let payload: Record<string, unknown>;
   try {
-    payload = JSON.parse(row.payload) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(row.payload);
+    if (!isRecord(parsed)) throw new Error("payload is not an object");
+    payload = parsed;
   } catch {
-    throw new Error(`イベント${row.id}のpayloadが破損しています。`);
+    throw new ValidationError(`イベント${row.id}のpayloadが破損しています。`);
   }
   const base = {
     id: row.id,
@@ -566,75 +512,106 @@ function mapEvent(row: EventRow): CareerEvent {
     case "casual_interview_applied":
     case "casual_interview_scheduled":
     case "casual_interview_completed":
-      return { ...base, type: row.type };
+      return unwrap(reconstructCareerEvent({ ...base, type: row.type }));
     case "resume_submitted": {
       if (typeof payload.resumeId !== "string")
-        throw new Error(`イベント${row.id}にresumeIdがありません。`);
-      return { ...base, type: row.type, resumeId: payload.resumeId };
+        throw new ValidationError(`イベント${row.id}にresumeIdがありません。`);
+      return unwrap(
+        reconstructCareerEvent({
+          ...base,
+          type: row.type,
+          resumeId: payload.resumeId,
+        }),
+      );
     }
     case "selection_scheduled":
     case "selection_completed": {
       if (row.round === null)
-        throw new Error(`イベント${row.id}にroundがありません。`);
-      return { ...base, type: row.type, round: row.round };
+        throw new ValidationError(`イベント${row.id}にroundがありません。`);
+      return unwrap(
+        reconstructCareerEvent({ ...base, type: row.type, round: row.round }),
+      );
     }
     case "offer_received": {
-      const event = { ...base, type: row.type } as CareerEvent & {
-        type: "offer_received";
-      };
-      if (typeof payload.position === "string")
-        event.position = payload.position;
-      if (typeof payload.annualSalary === "number")
-        event.annualSalary = payload.annualSalary;
-      return event;
+      if (
+        payload.position !== undefined &&
+        typeof payload.position !== "string"
+      )
+        throw new ValidationError(`イベント${row.id}のpositionが不正です。`);
+      if (
+        payload.annualSalary !== undefined &&
+        typeof payload.annualSalary !== "number"
+      )
+        throw new ValidationError(
+          `イベント${row.id}のannualSalaryが不正です。`,
+        );
+      return unwrap(
+        reconstructCareerEvent({
+          ...base,
+          type: row.type,
+          ...(payload.position === undefined
+            ? {}
+            : { position: payload.position }),
+          ...(payload.annualSalary === undefined
+            ? {}
+            : { annualSalary: payload.annualSalary }),
+        }),
+      );
     }
     case "rejected": {
-      const event = { ...base, type: row.type } as CareerEvent & {
-        type: "rejected";
-      };
-      if (typeof payload.reason === "string") event.reason = payload.reason;
-      return event;
+      if (payload.reason !== undefined && typeof payload.reason !== "string")
+        throw new ValidationError(`イベント${row.id}のreasonが不正です。`);
+      return unwrap(
+        reconstructCareerEvent({
+          ...base,
+          type: row.type,
+          ...(payload.reason === undefined ? {} : { reason: payload.reason }),
+        }),
+      );
     }
     default:
-      throw new Error(`未知のイベント種別です: ${String(row.type)}`);
+      throw new ValidationError(`未知のイベント種別です: ${String(row.type)}`);
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function mapNote(row: NoteRow): Note {
-  return {
-    id: row.id,
-    companyId: row.company_id,
-    title: row.title,
-    body: row.body,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+  return unwrap(
+    reconstructNote({
+      id: row.id,
+      companyId: row.company_id,
+      title: row.title,
+      body: row.body,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }),
+  );
 }
 
 function mapResume(row: ResumeRow): Resume {
-  return {
-    id: row.id,
-    name: row.name,
-    size: row.size,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+  return unwrap(
+    reconstructResume({
+      id: row.id,
+      name: row.name,
+      size: row.size,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }),
+  );
 }
 
 function mapResumeSubmission(row: ResumeSubmissionRow): ResumeSubmission {
-  return {
-    id: row.id,
-    companyId: row.company_id,
-    resumeId: row.resume_id,
-    submittedAt: row.submitted_at,
-    createdAt: row.created_at,
-  };
-}
-
-function looksLikePdf(content: Uint8Array): boolean {
-  return (
-    content.byteLength >= 5 &&
-    new TextDecoder("ascii").decode(content.subarray(0, 5)) === "%PDF-"
+  return unwrap(
+    reconstructResumeSubmission({
+      id: row.id,
+      companyId: row.company_id,
+      resumeId: row.resume_id,
+      submittedAt: row.submitted_at,
+      createdAt: row.created_at,
+    }),
   );
 }
 
